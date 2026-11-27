@@ -46,20 +46,27 @@ export const options = {
     }
 };
 
-export function inspectorScenario() {
-    const token = getAuthToken();
-    if (token) runInspectorJourney(token);
+export function setup() {
+    return getAuthToken();
+}
+
+export function inspectorScenario(data) {
+    if (data && data.token) {
+        runInspectorJourney(data.token, data.userId);
+    }
     sleep(2);
 }
 
-export function monitorScenario() {
-    const token = getAuthToken();
-    if (token) runMonitorJourney(token);
+export function monitorScenario(data) {
+    if (data && data.token) {
+        runMonitorJourney(data.token, data.userId);
+    }
     sleep(5);
 }
 
-export function buyerScenario() {
-    const token = getAuthToken();
-    if (token) runBuyerJourney(token);
+export function buyerScenario(data) {
+    if (data && data.token) {
+        runBuyerJourney(data.token, data.userId);
+    }
     sleep(10);
 }

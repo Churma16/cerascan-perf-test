@@ -3,7 +3,7 @@ import { check, sleep } from 'k6';
 import { BASE_URL } from '../helpers/config.js';
 import { getAuthHeaders } from '../helpers/auth.js';
 
-export function runBuyerJourney(token) {
+export function runBuyerJourney(token, userId = 1) {
     const authHeaders = getAuthHeaders(token);
 
     // 1. Ambil daftar paket langganan
@@ -24,7 +24,7 @@ export function runBuyerJourney(token) {
         }
     } catch {}
 
-    const checkoutPayload = JSON.stringify({ planId });
+    const checkoutPayload = JSON.stringify({ plan_id: planId });
     const checkoutRes = http.post(`${BASE_URL}/api/payment/checkout`, checkoutPayload, {
         headers: {
             ...authHeaders,
@@ -33,13 +33,13 @@ export function runBuyerJourney(token) {
     });
 
     check(checkoutRes, {
-        'buyer: checkout returns 200/201/400': (r) => [200, 201, 400].includes(r.status)
+        'buyer: checkout returns 200/201': (r) => [200, 201].includes(r.status)
     });
 
     sleep(2);
 
     // 3. Verifikasi ulang kuota
-    const quotaRes = http.get(`${BASE_URL}/api/user-quotas/me`, { headers: authHeaders });
+    const quotaRes = http.get(`${BASE_URL}/api/user-quotas/${userId}`, { headers: authHeaders });
     check(quotaRes, {
         'buyer: verify quota returns 200': (r) => r.status === 200
     });

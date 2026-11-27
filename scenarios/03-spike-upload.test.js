@@ -23,8 +23,12 @@ export const options = {
     }
 };
 
-export default function () {
-    const token = getAuthToken();
+export function setup() {
+    return getAuthToken();
+}
+
+export default function (data) {
+    const token = data && data.token;
     if (!token) {
         sleep(1);
         return;
@@ -34,7 +38,7 @@ export default function () {
         image: http.file(sampleTileBinary, 'burst-tile.png', 'image/png')
     };
 
-    const res = http.post(`${BASE_URL}/api/scans/analyze`, payload, {
+    const res = http.post(`${BASE_URL}/api/scans`, payload, {
         headers: getAuthHeaders(token)
     });
 

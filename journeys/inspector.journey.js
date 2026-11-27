@@ -5,11 +5,11 @@ import { getAuthHeaders } from '../helpers/auth.js';
 
 const sampleTileBinary = open('../fixtures/images/sample-tile.png', 'b');
 
-export function runInspectorJourney(token) {
+export function runInspectorJourney(token, userId = 1) {
     const authHeaders = getAuthHeaders(token);
 
     // 1. Cek kuota sebelum upload
-    const quotaRes = http.get(`${BASE_URL}/api/user-quotas/me`, { headers: authHeaders });
+    const quotaRes = http.get(`${BASE_URL}/api/user-quotas/${userId}`, { headers: authHeaders });
     check(quotaRes, {
         'inspector: quota check returns 200': (r) => r.status === 200
     });
@@ -21,7 +21,7 @@ export function runInspectorJourney(token) {
         image: http.file(sampleTileBinary, 'sample-tile.png', 'image/png')
     };
 
-    const uploadRes = http.post(`${BASE_URL}/api/scans/analyze`, payload, {
+    const uploadRes = http.post(`${BASE_URL}/api/scans`, payload, {
         headers: {
             ...authHeaders
         }

@@ -1,4 +1,4 @@
-export const BASE_URL = __ENV.BASE_URL || 'https://ceramic.churma.codes';
+export const BASE_URL = __ENV.BASE_URL || 'https://api-ceramic.churma.codes';
 
 export const DEFAULT_CREDENTIALS = {
     email: __ENV.TEST_USER_EMAIL || 'admin@cerascan.com',

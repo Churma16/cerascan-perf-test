@@ -3,7 +3,7 @@ import { check, sleep } from 'k6';
 import { BASE_URL } from '../helpers/config.js';
 import { getAuthHeaders } from '../helpers/auth.js';
 
-export function runMonitorJourney(token) {
+export function runMonitorJourney(token, userId = 1) {
     const authHeaders = getAuthHeaders(token);
 
     // 1. Dashboard KPI

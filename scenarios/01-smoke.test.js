@@ -15,7 +15,11 @@ export const options = {
     }
 };
 
-export default function () {
+export function setup() {
+    return getAuthToken();
+}
+
+export default function (data) {
     // Health check gateway dasar
     const rootRes = http.get(`${BASE_URL}/`);
     check(rootRes, {
@@ -28,13 +32,12 @@ export default function () {
         'metrics endpoint status is 200': (r) => r.status === 200
     });
 
-    const token = getAuthToken();
-    if (token) {
-        runMonitorJourney(token);
+    if (data && data.token) {
+        runMonitorJourney(data.token, data.userId);
         sleep(1);
-        runInspectorJourney(token);
+        runInspectorJourney(data.token, data.userId);
         sleep(1);
-        runBuyerJourney(token);
+        runBuyerJourney(data.token, data.userId);
     }
 
     sleep(1);

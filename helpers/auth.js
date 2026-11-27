@@ -2,11 +2,11 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { BASE_URL, DEFAULT_CREDENTIALS, DEFAULT_HEADERS } from './config.js';
 
-let cachedToken = null;
+let cachedAuth = null;
 
 export function getAuthToken(credentials = DEFAULT_CREDENTIALS) {
-    if (cachedToken) {
-        return cachedToken;
+    if (cachedAuth) {
+        return cachedAuth;
     }
 
     const payload = JSON.stringify({
@@ -22,11 +22,11 @@ export function getAuthToken(credentials = DEFAULT_CREDENTIALS) {
     });
 
     const success = check(res, {
-        'auth login status is 200': (r) => r.status === 200,
+        'auth login status is 200 or 201': (r) => [200, 201].includes(r.status),
         'auth login contains token': (r) => {
             try {
-                const body = JSON.parse(r.body);
-                return !!(body.token || (body.data && body.data.token));
+                const token = r.json('data.token') || r.json('token');
+                return !!token;
             } catch {
                 return false;
             }
@@ -35,9 +35,10 @@ export function getAuthToken(credentials = DEFAULT_CREDENTIALS) {
 
     if (success) {
         try {
-            const body = JSON.parse(res.body);
-            cachedToken = body.token || (body.data && body.data.token);
-            return cachedToken;
+            const token = res.json('data.token') || res.json('token');
+            const userId = res.json('data.user.id') || res.json('user.id') || 1;
+            cachedAuth = { token, userId };
+            return cachedAuth;
         } catch {
             return null;
         }
@@ -47,8 +48,9 @@ export function getAuthToken(credentials = DEFAULT_CREDENTIALS) {
 }
 
 export function getAuthHeaders(token) {
+    const rawToken = typeof token === 'object' && token !== null ? token.token : token;
     return {
         ...DEFAULT_HEADERS,
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${rawToken}`
     };
 }

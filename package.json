@@ -10,7 +10,8 @@
     "test:sse": "k6 run scenarios/04-sse-soak.test.js",
     "docker:smoke": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/01-smoke.test.js",
     "docker:load": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/02-average-load.test.js",
-    "docker:spike": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/03-spike-upload.test.js"
+    "docker:spike": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/03-spike-upload.test.js",
+    "docker:sse": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/04-sse-soak.test.js"
   },
   "keywords": ["k6", "performance", "benchmark", "load-testing", "cerascan"],
   "author": "Churma",
