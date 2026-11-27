@@ -15,7 +15,11 @@
     "bench:leaderboard": "k6 run scenarios/endpoints/leaderboard-stress.js",
     "bench:dashboard": "k6 run scenarios/endpoints/dashboard-kpi-stress.js",
     "bench:quota": "k6 run scenarios/endpoints/quota-check-stress.js",
-    "bench:upload": "k6 run scenarios/endpoints/scan-upload-stress.js"
+    "bench:upload": "k6 run scenarios/endpoints/scan-upload-stress.js",
+    "docker:bench:leaderboard": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/endpoints/leaderboard-stress.js",
+    "docker:bench:dashboard": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/endpoints/dashboard-kpi-stress.js",
+    "docker:bench:quota": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/endpoints/quota-check-stress.js",
+    "docker:bench:upload": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/endpoints/scan-upload-stress.js"
   },
   "keywords": ["k6", "performance", "benchmark", "load-testing", "cerascan"],
   "author": "Churma",

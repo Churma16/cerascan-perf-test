@@ -1,11 +1,10 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { BASE_URL } from '../../helpers/config.js';
-import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 /**
  * Single-Endpoint Stress Test: GET /api/leaderboards
- * Karakteristik: Read-heavy, 100% in-memory Redis Sorted Set (ZREVRANGE).
+ * Karakteristik: Read-heavy, 100% in-memory Redis Sorted Set (ZREVRANGE), endpoint publik.
  * Tujuan: Menguji batas maksimal RPS Redis in-memory cache dan koneksi pool Express.
  */
 export const options = {
@@ -15,7 +14,7 @@ export const options = {
             startRate: 50,
             timeUnit: '1s',
             preAllocatedVUs: 50,
-            maxVUs: 200,
+            maxVUs: 1000, // Alokasi VU cukup untuk mencegah dropped iterations saat 1.000 RPS
             stages: [
                 { duration: '30s', target: 200 }, // Naik ke 200 RPS
                 { duration: '1m', target: 500 },  // Naik ke 500 RPS
@@ -30,14 +29,8 @@ export const options = {
     }
 };
 
-export function setup() {
-    return getAuthToken();
-}
-
-export default function (data) {
-    const authHeaders = getAuthHeaders(data && data.token);
-
-    const res = http.get(`${BASE_URL}/api/leaderboards`, { headers: authHeaders });
+export default function () {
+    const res = http.get(`${BASE_URL}/api/leaderboards`);
 
     check(res, {
         'leaderboard status is 200': (r) => r.status === 200,

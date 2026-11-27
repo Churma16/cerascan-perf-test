@@ -34,18 +34,14 @@ export function setup() {
 }
 
 export default function (data) {
-    const token = data && data.token;
-    if (!token) {
-        sleep(1);
-        return;
-    }
-
     const payload = {
         image: http.file(sampleTileBinary, 'stress-tile.png', 'image/png')
     };
 
+    const headers = getAuthHeaders(data && data.token);
+
     const res = http.post(`${BASE_URL}/api/scans`, payload, {
-        headers: getAuthHeaders(token)
+        headers
     });
 
     check(res, {

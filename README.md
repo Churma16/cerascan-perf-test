@@ -36,7 +36,7 @@ Salin template environment:
 cp .env.example .env
 ```
 Variabel yang didukung:
-- `BASE_URL`: URL target API (default: `https://ceramic.churma.codes` atau `http://localhost:5000`).
+- `BASE_URL`: URL target API (default: `https://api-ceramic.churma.codes` atau `http://localhost:5000`).
 - `TEST_USER_EMAIL`: Akun penguji terdaftar.
 - `TEST_USER_PASSWORD`: Password akun penguji.
 
@@ -51,13 +51,27 @@ k6 run scenarios/02-average-load.test.js
 # Spike upload test
 k6 run scenarios/03-spike-upload.test.js
 
+# Single-Endpoint Benchmarks
+k6 run scenarios/endpoints/leaderboard-stress.js
+k6 run scenarios/endpoints/dashboard-kpi-stress.js
+k6 run scenarios/endpoints/quota-check-stress.js
+k6 run scenarios/endpoints/scan-upload-stress.js
+
 # Custom target URL
 BASE_URL="http://localhost:5000" k6 run scenarios/01-smoke.test.js
 ```
 
 ### Menjalankan Uji via Docker
 ```bash
+# Skenario Utama
 docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/01-smoke.test.js
+docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/02-average-load.test.js
+
+# Single-Endpoint Benchmarks via Docker
+npm run docker:bench:leaderboard
+npm run docker:bench:dashboard
+npm run docker:bench:quota
+npm run docker:bench:upload
 ```
 
 ---
