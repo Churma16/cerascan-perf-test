@@ -14,13 +14,16 @@ export function runBuyerJourney(token, userId = 1) {
 
     sleep(1);
 
-    // 2. Simulasi request checkout
-    let planId = 1;
+    // 2. Simulasi request checkout (pilih paket berbayar agar valid di Midtrans)
+    let planId = 2;
     try {
         const body = JSON.parse(plansRes.body);
         const plans = Array.isArray(body) ? body : (body.data || []);
-        if (plans.length > 0 && plans[0].id) {
-            planId = plans[0].id;
+        const paidPlan = plans.find((p) => Number(p.price) > 0);
+        if (paidPlan && paidPlan.id) {
+            planId = paidPlan.id;
+        } else if (plans.length > 1 && plans[1].id) {
+            planId = plans[1].id;
         }
     } catch {}
 

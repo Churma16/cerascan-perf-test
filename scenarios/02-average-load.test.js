@@ -74,3 +74,9 @@ export function buyerScenario(data) {
     }
     sleep(10);
 }
+
+export default function (data) {
+    inspectorScenario(data);
+    monitorScenario(data);
+    buyerScenario(data);
+}
