@@ -39,6 +39,7 @@ Variabel yang didukung:
 - `BASE_URL`: URL target API (default: `https://api-ceramic.churma.codes` atau `http://localhost:5000`).
 - `TEST_USER_EMAIL`: Akun penguji terdaftar.
 - `TEST_USER_PASSWORD`: Password akun penguji.
+- `USER_POOL_SIZE`: Jumlah pool akun pengguna untuk simulasi multi-tenant (default: `10`, rentang 1..10).
 
 ### Menjalankan Uji (Native k6)
 ```bash

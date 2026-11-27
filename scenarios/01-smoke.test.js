@@ -1,7 +1,7 @@
 import { sleep, check } from 'k6';
 import http from 'k6/http';
 import { BASE_URL } from '../helpers/config.js';
-import { getAuthToken } from '../helpers/auth.js';
+import { getAuthTokenPool, getUserAuth } from '../helpers/auth.js';
 import { runInspectorJourney } from '../journeys/inspector.journey.js';
 import { runMonitorJourney } from '../journeys/monitor.journey.js';
 import { runBuyerJourney } from '../journeys/buyer.journey.js';
@@ -16,7 +16,8 @@ export const options = {
 };
 
 export function setup() {
-    return getAuthToken();
+    const tokens = getAuthTokenPool();
+    return { tokens };
 }
 
 export default function (data) {
@@ -32,12 +33,13 @@ export default function (data) {
         'metrics endpoint status is 200': (r) => r.status === 200
     });
 
-    if (data && data.token) {
-        runMonitorJourney(data.token, data.userId);
+    const auth = getUserAuth(__VU, data);
+    if (auth && auth.token) {
+        runMonitorJourney(auth.token, auth.userId);
         sleep(1);
-        runInspectorJourney(data.token, data.userId);
+        runInspectorJourney(auth.token, auth.userId);
         sleep(1);
-        runBuyerJourney(data.token, data.userId);
+        runBuyerJourney(auth.token, auth.userId);
     }
 
     sleep(1);

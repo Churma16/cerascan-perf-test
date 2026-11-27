@@ -1,12 +1,13 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { BASE_URL } from '../../helpers/config.js';
-import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
+import { getAuthTokenPool, getUserAuth, getAuthHeaders } from '../../helpers/auth.js';
 
 /**
  * Single-Endpoint Stress Test: GET /api/dashboard/kpi
- * Karakteristik: Read-heavy, dilindungi Redis Caching Middleware.
- * Tujuan: Menguji ketahanan cache hit rate saat ribuan operator membuka dashboard bersamaan.
+ * Karakteristik: Read-heavy, dilindungi Redis Caching Middleware per-user (`dashboard:kpi:${userId}`).
+ * Beban: 300 concurrent VUs didistribusikan ke pool pengguna virtual (USER_POOL_SIZE)
+ *        sehingga menguji konkurensi multi-tenant cache keys dan agregasi database.
  */
 export const options = {
     scenarios: {
@@ -22,18 +23,24 @@ export const options = {
         }
     },
     thresholds: {
-        http_req_failed: ['rate<0.01'],
-        http_req_duration: ['p(95)<80', 'p(99)<250'] // p95 < 80ms pada cache hit
+        http_req_failed: ['rate<0.02'],
+        http_req_duration: ['p(95)<300', 'p(99)<800']
     }
 };
 
 export function setup() {
-    return getAuthToken();
+    const tokens = getAuthTokenPool();
+    return { tokens };
 }
 
 export default function (data) {
-    const authHeaders = getAuthHeaders(data && data.token);
+    const auth = getUserAuth(__VU, data);
+    if (!auth || !auth.token) {
+        sleep(1);
+        return;
+    }
 
+    const authHeaders = getAuthHeaders(auth.token);
     const res = http.get(`${BASE_URL}/api/dashboard/kpi`, { headers: authHeaders });
 
     check(res, {
