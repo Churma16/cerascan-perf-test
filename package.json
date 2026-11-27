@@ -1,0 +1,18 @@
+{
+  "name": "cerascan-perf-test",
+  "version": "1.0.0",
+  "description": "Comprehensive performance, stress, and load testing suite for CeraScan using Grafana k6",
+  "main": "scenarios/01-smoke.test.js",
+  "scripts": {
+    "test:smoke": "k6 run scenarios/01-smoke.test.js",
+    "test:load": "k6 run scenarios/02-average-load.test.js",
+    "test:spike": "k6 run scenarios/03-spike-upload.test.js",
+    "test:sse": "k6 run scenarios/04-sse-soak.test.js",
+    "docker:smoke": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/01-smoke.test.js",
+    "docker:load": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/02-average-load.test.js",
+    "docker:spike": "docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run scenarios/03-spike-upload.test.js"
+  },
+  "keywords": ["k6", "performance", "benchmark", "load-testing", "cerascan"],
+  "author": "Churma",
+  "license": "ISC"
+}

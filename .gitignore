@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.log
+summary.html
+summary.json
+.DS_Store
