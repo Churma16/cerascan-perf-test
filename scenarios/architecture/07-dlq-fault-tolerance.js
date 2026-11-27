@@ -14,13 +14,10 @@ import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 export const options = {
     scenarios: {
         dlq_monitoring_stress: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: [
-                { duration: '15s', target: 10 },
-                { duration: '30s', target: 30 },
-                { duration: '15s', target: 0 }
-            ]
+            executor: 'shared-iterations',
+            vus: 5,
+            iterations: 20,
+            maxDuration: '30s'
         }
     },
     thresholds: {

@@ -1,7 +1,7 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Trend } from 'k6/metrics';
-import { BASE_URL } from '../../helpers/config.js';
+import { BASE_URL, BENCH_PROFILE } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 const sampleTileBinary = open('../../fixtures/images/sample-tile.png', 'b');
@@ -10,32 +10,26 @@ const cqrsWriteLatency = new Trend('cqrs_write_latency_ms');
 
 /**
  * Architecture Benchmark 06: CQRS & Polyglot Persistence (Concurrent Read + Write)
- * Pasangan tanding 1-to-1 untuk: scenarios/baseline/06-cqrs-monolith-baseline.js
- *
- * Klaim yang dibuktikan:
- * Jalur Read (Query Handler -> Redis/MongoDB read-model) dan jalur Write (Command -> MySQL + RabbitMQ)
- * terisolasi penuh. Beban baca analitik tinggi tidak mengunci (table lock) transaksi tulis.
+ * Executor: constant-arrival-rate (40 Read RPS + 5 Write RPS local / 80 Read + 10 Write VPS)
  */
 export const options = {
     scenarios: {
         cqrs_heavy_reads: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: [
-                { duration: '20s', target: 20 },
-                { duration: '40s', target: 40 },
-                { duration: '20s', target: 0 }
-            ],
+            executor: 'constant-arrival-rate',
+            rate: BENCH_PROFILE === 'vps' ? 80 : 40,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 20,
+            maxVUs: 60,
             exec: 'readQueryFlow'
         },
         cqrs_concurrent_writes: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: [
-                { duration: '20s', target: 5 },
-                { duration: '40s', target: 10 },
-                { duration: '20s', target: 0 }
-            ],
+            executor: 'constant-arrival-rate',
+            rate: BENCH_PROFILE === 'vps' ? 10 : 5,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 10,
+            maxVUs: 20,
             exec: 'writeCommandFlow'
         }
     },
@@ -53,17 +47,13 @@ export function readQueryFlow(data) {
     const authHeaders = getAuthHeaders(data && data.token);
 
     const res = http.get(`${BASE_URL}/api/dashboard/kpi`, {
-        headers: {
-            ...authHeaders
-        }
+        headers: { ...authHeaders }
     });
     cqrsReadLatency.add(res.timings.duration);
 
     check(res, {
         'cqrs read dashboard kpi status 200': (r) => r.status === 200
     });
-
-    sleep(1);
 }
 
 export function writeCommandFlow(data) {
@@ -74,17 +64,13 @@ export function writeCommandFlow(data) {
     };
 
     const res = http.post(`${BASE_URL}/api/scans`, payload, {
-        headers: {
-            ...authHeaders
-        }
+        headers: { ...authHeaders }
     });
     cqrsWriteLatency.add(res.timings.duration);
 
     check(res, {
         'cqrs write scan accepted 202': (r) => r.status === 202
     });
-
-    sleep(1);
 }
 
 export default function (data) {

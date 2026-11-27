@@ -1,35 +1,24 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { FormData } from 'https://jslib.k6.io/formdata/0.0.2/index.js';
-import { BASE_URL, BATCH_SIZE, selectStages } from '../../helpers/config.js';
+import { BASE_URL, BATCH_SIZE, BENCH_PROFILE } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
 
 /**
  * Architecture Benchmark 08: Batch Multipart Ingestion Pipeline
- *
- * Klaim yang dibuktikan:
- * 1. Mengunggah BATCH_SIZE (default 10) gambar dalam 1 stream multipart HTTP tunggal
- *    memotong overhead HTTP/TLS handshake & validasi kuota berulang dibanding client-side looping.
+ * Executor: constant-arrival-rate (2 batch/s = 20 img/s local | 5 batch/s = 50 img/s vps)
  */
 export const options = {
     scenarios: {
         batch_multipart_stress: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: selectStages(
-                [
-                    { duration: '10s', target: 5 },
-                    { duration: '20s', target: 10 },
-                    { duration: '10s', target: 0 }
-                ],
-                [
-                    { duration: '20s', target: 10 },
-                    { duration: '40s', target: 25 },
-                    { duration: '20s', target: 0 }
-                ]
-            )
+            executor: 'constant-arrival-rate',
+            rate: BENCH_PROFILE === 'vps' ? 5 : 2,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 10,
+            maxVUs: 30
         }
     },
     thresholds: {
@@ -68,6 +57,4 @@ export default function (data) {
             }
         }
     });
-
-    sleep(1);
 }

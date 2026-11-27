@@ -1,7 +1,7 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Trend } from 'k6/metrics';
-import { BASE_URL, selectStages } from '../../helpers/config.js';
+import { BASE_URL, BENCH_PROFILE } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
@@ -11,31 +11,17 @@ const coreServiceImpactLatency = new Trend('core_service_impact_latency_ms');
 
 /**
  * Baseline Benchmark 05: Local Disk Storage & Serving (Tanpa Cloudflare R2)
- * Pasangan tanding untuk: scenarios/architecture/05-r2-storage-upload.js
- *
- * Metrik yang diukur (Dual-Latency + Disk Usage):
- * 1. local_upload_latency_ms: Latency write ke SSD lokal.
- * 2. local_serving_latency_ms: Latency static file serving (/uploads/baseline/...) dari VPS.
- * 3. core_service_impact_latency_ms: Dampak beban Disk I/O & static serving terhadap
- *    latency endpoint inti (/api/user-quotas/me) pada server yang sama.
+ * Executor: constant-arrival-rate (10 iter/s local / 25 iter/s vps)
  */
 export const options = {
     scenarios: {
         baseline_localdisk_upload: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: selectStages(
-                [
-                    { duration: '10s', target: 10 },
-                    { duration: '20s', target: 20 },
-                    { duration: '10s', target: 0 }
-                ],
-                [
-                    { duration: '20s', target: 15 },
-                    { duration: '40s', target: 35 },
-                    { duration: '20s', target: 0 }
-                ]
-            )
+            executor: 'constant-arrival-rate',
+            rate: BENCH_PROFILE === 'vps' ? 25 : 10,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 15,
+            maxVUs: 40
         }
     },
     thresholds: {
@@ -97,6 +83,4 @@ export default function (data) {
     check(coreRes, {
         'core service status 200': (r) => r.status === 200
     });
-
-    sleep(1);
 }

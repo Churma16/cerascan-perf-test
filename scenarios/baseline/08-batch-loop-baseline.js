@@ -1,7 +1,7 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Trend } from 'k6/metrics';
-import { BASE_URL, BATCH_SIZE, selectStages } from '../../helpers/config.js';
+import { BASE_URL, BATCH_SIZE, BENCH_PROFILE } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
@@ -9,29 +9,17 @@ const totalLoopBatchDuration = new Trend('single_loop_batch_total_ms');
 
 /**
  * Baseline Benchmark 08: Client-Side Single Looping ke Production Endpoint (Tanpa Batch)
- * Pasangan tanding 1-to-1 untuk: scenarios/architecture/08-batch-multipart-ingest.js
- *
- * Hipotesa:
- * Mengirim BATCH_SIZE (default 10) gambar lewat looping request satuan ke POST /api/scans
- * memiliki total durasi lebih lambat dan overhead koneksi lebih tinggi dibanding 1 stream POST /api/scans/batch.
+ * Executor: constant-arrival-rate (2 loop-set/s = 20 img/s local | 5 loop-set/s = 50 img/s vps)
  */
 export const options = {
     scenarios: {
         baseline_single_loop: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: selectStages(
-                [
-                    { duration: '10s', target: 5 },
-                    { duration: '20s', target: 10 },
-                    { duration: '10s', target: 0 }
-                ],
-                [
-                    { duration: '20s', target: 10 },
-                    { duration: '40s', target: 25 },
-                    { duration: '20s', target: 0 }
-                ]
-            )
+            executor: 'constant-arrival-rate',
+            rate: BENCH_PROFILE === 'vps' ? 5 : 2,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 10,
+            maxVUs: 30
         }
     },
     thresholds: {
@@ -54,9 +42,7 @@ export default function (data) {
         };
 
         const res = http.post(`${BASE_URL}/api/scans`, payload, {
-            headers: {
-                ...authHeaders
-            }
+            headers: { ...authHeaders }
         });
 
         check(res, {
@@ -65,6 +51,4 @@ export default function (data) {
     }
 
     totalLoopBatchDuration.add(Date.now() - loopStartTime);
-
-    sleep(1);
 }

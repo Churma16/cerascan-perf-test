@@ -1,6 +1,6 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
-import { BASE_URL, selectStages } from '../../helpers/config.js';
+import { check } from 'k6';
+import { BASE_URL, BENCH_PROFILE } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
@@ -8,28 +8,17 @@ const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
 /**
  * Baseline Benchmark 04: REST HTTP/1.1 Inference (Tanpa gRPC Protobuf)
  * Pasangan tanding untuk: scenarios/architecture/04-grpc-ml-inference.js
- *
- * Hipotesa:
- * Pengiriman gambar via REST HTTP/1.1 multipart ke FastAPI memiliki overhead parsing teks/MIME
- * dan pembukaan koneksi baru yang lebih lambat dibanding gRPC Protobuf over HTTP/2.
+ * Executor: constant-arrival-rate (exact Target RPS: 8 RPS local / 15 RPS vps)
  */
 export const options = {
     scenarios: {
         baseline_rest_inference: {
-            executor: 'ramping-vus',
-            startVUs: 0,
-            stages: selectStages(
-                [
-                    { duration: '10s', target: 5 },
-                    { duration: '20s', target: 10 },
-                    { duration: '10s', target: 0 }
-                ],
-                [
-                    { duration: '15s', target: 5 },
-                    { duration: '45s', target: 15 },
-                    { duration: '15s', target: 0 }
-                ]
-            )
+            executor: 'constant-arrival-rate',
+            rate: BENCH_PROFILE === 'vps' ? 15 : 8,
+            timeUnit: '1s',
+            duration: '30s',
+            preAllocatedVUs: 10,
+            maxVUs: 30
         }
     },
     thresholds: {
@@ -58,6 +47,4 @@ export default function (data) {
     check(res, {
         'baseline rest inference status is 200': (r) => r.status === 200
     });
-
-    sleep(1);
 }
