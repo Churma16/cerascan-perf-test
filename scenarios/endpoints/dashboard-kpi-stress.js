@@ -35,8 +35,12 @@ export function setup() {
 
 export default function (data) {
     const auth = getUserAuth(__VU, data);
-    const authHeaders = getAuthHeaders(auth.token);
+    if (!auth || !auth.token) {
+        sleep(1);
+        return;
+    }
 
+    const authHeaders = getAuthHeaders(auth.token);
     const res = http.get(`${BASE_URL}/api/dashboard/kpi`, { headers: authHeaders });
 
     check(res, {

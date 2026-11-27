@@ -53,18 +53,24 @@ export function setup() {
 
 export function inspectorScenario(data) {
     const auth = getUserAuth(__VU, data);
-    runInspectorJourney(auth.token, auth.userId);
+    if (auth && auth.token) {
+        runInspectorJourney(auth.token, auth.userId);
+    }
     sleep(2);
 }
 
 export function monitorScenario(data) {
     const auth = getUserAuth(__VU, data);
-    runMonitorJourney(auth.token, auth.userId);
+    if (auth && auth.token) {
+        runMonitorJourney(auth.token, auth.userId);
+    }
     sleep(5);
 }
 
 export function buyerScenario(data) {
     const auth = getUserAuth(__VU, data);
-    runBuyerJourney(auth.token, auth.userId);
+    if (auth && auth.token) {
+        runBuyerJourney(auth.token, auth.userId);
+    }
     sleep(10);
 }

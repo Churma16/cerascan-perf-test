@@ -10,5 +10,5 @@ export const DEFAULT_HEADERS = {
     'User-Agent': 'k6-cerascan-benchmark/1.0'
 };
 
-export const JWT_SECRET = __ENV.JWT_SECRET || 'fallback_secret_key';
-export const USER_POOL_SIZE = parseInt(__ENV.USER_POOL_SIZE || '10', 10);
+// Maksimal 10 user sesuai data seed akun penguji (admin + tester2..tester10)
+export const USER_POOL_SIZE = Math.min(Math.max(1, parseInt(__ENV.USER_POOL_SIZE || '10', 10)), 10);
