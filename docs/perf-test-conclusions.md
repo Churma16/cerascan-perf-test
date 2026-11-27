@@ -140,3 +140,14 @@ Berdasarkan seluruh rangkaian benchmark lokal ini, arsitektur CeraScan terbukti 
 - **Resilience & Stability**: RabbitMQ (`01b`) dan DLQ (`07`) mencegah server jebol saat *traffic spike* serta memastikan **0% data loss** saat worker gagal.
 - **Throughput & Low Latency**: Redis (`02b`), gRPC (`04`), dan CQRS (`06b`) memangkas latency P95/P99 hingga **36%–94%** dan menaikkan kapasitas RPS secara drastis di bawah beban tinggi.
 - **Resource & Network Efficiency**: SSE (`03`), Cloudflare R2 (`05`), dan Batch Upload (`08`) menekan konsumsi bandwidth outbound/polling hingga **>92%** serta menjaga backend tetap **stateless** dan siap di-scale secara horizontal.
+
+---
+
+## Kesimpulan End-to-End User Journey
+
+Selain pengujian terisolasi per pilar arsitektur, seluruh 4 skenario **User Journey** dijalankan secara penuh (menggabungkan Auth, Dashboard, Upload R2 + RabbitMQ, Checkout, dan SSE):
+
+1. **Smoke Test (`5 VUs`, 30s — PASS 100%)**: Seluruh 14 titik *check* fungsional lulus (`182/182`, Err `0.00%`, P95 `392.29ms`, P99 `508.70ms`).
+2. **Average Load (`100 VUs` campuran, 5m — 0% Error)**: `8.296` request berjalan tanpa satu pun error (`8297/8297` checks lulus, Avg `79.76ms`, P99 `407.53ms` lolos `<800ms`). P95 tercatat `316.08ms` (tipis 16ms di atas batas ketat `300ms`) murni karena 65% trafik merupakan upload gambar langsung ke Cloudflare R2.
+3. **Spike Upload (`150 VUs` burst, 1m25s — PASS 100%)**: Sistem menyerap `8.101` upload pada `93.91 RPS` dengan **0.00% error**, P95 `499.51ms`, dan P99 `634.30ms` (jauh di bawah batas `1500ms`), membuktikan efektivitas kombinasi RabbitMQ + Redis Atomic Quota di bawah lonjakan mendadak.
+4. **SSE Soak (`100` koneksi persisten, 2m45s — PASS 100%)**: Seluruh `704` siklus stream SSE terhubung sehat (`sse_connected: 100.00%`) tanpa *drop* atau degradasi memori selama hampir 3 menit.

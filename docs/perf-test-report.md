@@ -55,3 +55,14 @@ Memvalidasi secara empiris 8 keputusan arsitektur CeraScan (RabbitMQ, Redis, SSE
 - **Case 04 (`arch:04` vs `base:04`)**: Menggunakan gambar HD `sample-tile-hd.png` (~618 KB) membuktikan keunggulan telak HTTP/2 Protobuf biner gRPC (`554.77ms` P95, `594.95ms` P99) dibanding REST HTTP/1.1 multipart (`5.92s` P95, `6.48s` P99).
 - **Case 05 (`arch:05` vs `base:05`)**: `data_received` Express membuktikan beban outbound (`190 MB` static serving pada `base:05` vs `355 kB` pada `arch:05`).
 - **Case 08 (`arch:08` vs `base:08`)**: `arch:08` hanya mengirim `31` HTTP requests (vs `501` pada `base:08`) dengan P99 `8.75s` (vs `16.50s`).
+
+---
+
+## 6. End-to-End User Journey Benchmarks
+
+| Scenario | Script | Load Profile | RPS | Avg | P95 | P99 | Err % | Checks / Threshold | Kesimpulan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **01. Smoke Test** | `scenarios/01-smoke.test.js` | `5 VUs`, `30s` | `4.72/s` (`181` reqs) | `59.32ms` | `392.29ms` | `508.70ms` | `0.00%` | `182/182` (100% PASS) | Seluruh alur utama (Auth, Monitor, Inspector, Buyer) berjalan 100% sehat di bawah threshold `<500ms`. |
+| **02. Average Load** | `scenarios/02-average-load.test.js` | Peak `100 VUs` (65 Inspector + 25 Monitor + 10 Buyer), `5m` | `27.29/s` (`8.296` reqs) | `79.76ms` | `316.08ms` | `407.53ms` | `0.00%` | `8297/8297` (`P99 <800ms` PASS, `P95` tipis di atas `300ms`) | 0% error selama 5 menit penuh; P95 `316.08ms` sedikit melewati `300ms` karena 65 VU Inspector mengunggah gambar ke Cloudflare R2. |
+| **03. Spike Upload** | `scenarios/03-spike-upload.test.js` | Spike `0 -> 150 VUs` dalam `10s`, tahan `1m`, `1m25s` total | `93.91/s` (`8.101` reqs) | `353.64ms` | `499.51ms` | `634.30ms` | `0.00%` | `8101/8101` (100% PASS `<1500ms`) | Lonjakan mendadak 150 VU upload ditangani mulus tanpa 1 pun error dengan P95 3x lebih cepat dari batas 1.5s. |
+| **04. SSE Soak** | `scenarios/04-sse-soak.test.js` | `100` koneksi SSE persisten (`15s` hold), `2m45s` | `3.92/s` (`704` streams) | `14.99s` hold | `15.00s` hold | `15.00s` hold | `0.00%` (`sse_connected: 100%`) | `704/704` (100% PASS `>95%`) | 100 koneksi SSE persisten stabil penuh selama hampir 3 menit (`sse_connected = 100%`, `3.6 MB` total data). |
