@@ -1,11 +1,12 @@
 import http from 'k6/http';
 import { check } from 'k6';
-import { BASE_URL } from '../../helpers/config.js';
+import { BASE_URL, USER_POOL_SIZE } from '../../helpers/config.js';
 
 /**
  * Single-Endpoint Stress Test: GET /api/user-quotas/:user_id
  * Karakteristik: Endpoint validasi paling sering dipanggil (pre-flight setiap scan).
- * Tujuan: Memastikan query kuota di Redis/MySQL tidak menjadi bottleneck saat pabrik beroperasi penuh.
+ * Beban: Menyebarkan request ke USER_POOL_SIZE ID pengguna untuk menguji index lookup MySQL
+ *        dan menghindari bias InnoDB buffer pool dari single user ID.
  */
 export const options = {
     scenarios: {
@@ -25,7 +26,9 @@ export const options = {
 };
 
 export default function () {
-    const res = http.get(`${BASE_URL}/api/user-quotas/1`);
+    // Variasikan user_id 1..USER_POOL_SIZE berdasarkan Virtual User aktif
+    const userId = ((__VU - 1) % USER_POOL_SIZE) + 1;
+    const res = http.get(`${BASE_URL}/api/user-quotas/${userId}`);
 
     check(res, {
         'quota check status is 200': (r) => r.status === 200

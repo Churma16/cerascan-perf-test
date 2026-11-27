@@ -1,5 +1,5 @@
 import { sleep } from 'k6';
-import { getAuthToken } from '../helpers/auth.js';
+import { getAuthTokenPool, getUserAuth } from '../helpers/auth.js';
 import { runInspectorJourney } from '../journeys/inspector.journey.js';
 import { runMonitorJourney } from '../journeys/monitor.journey.js';
 import { runBuyerJourney } from '../journeys/buyer.journey.js';
@@ -47,26 +47,24 @@ export const options = {
 };
 
 export function setup() {
-    return getAuthToken();
+    const tokens = getAuthTokenPool();
+    return { tokens };
 }
 
 export function inspectorScenario(data) {
-    if (data && data.token) {
-        runInspectorJourney(data.token, data.userId);
-    }
+    const auth = getUserAuth(__VU, data);
+    runInspectorJourney(auth.token, auth.userId);
     sleep(2);
 }
 
 export function monitorScenario(data) {
-    if (data && data.token) {
-        runMonitorJourney(data.token, data.userId);
-    }
+    const auth = getUserAuth(__VU, data);
+    runMonitorJourney(auth.token, auth.userId);
     sleep(5);
 }
 
 export function buyerScenario(data) {
-    if (data && data.token) {
-        runBuyerJourney(data.token, data.userId);
-    }
+    const auth = getUserAuth(__VU, data);
+    runBuyerJourney(auth.token, auth.userId);
     sleep(10);
 }

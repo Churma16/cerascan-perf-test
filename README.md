@@ -39,6 +39,8 @@ Variabel yang didukung:
 - `BASE_URL`: URL target API (default: `https://api-ceramic.churma.codes` atau `http://localhost:5000`).
 - `TEST_USER_EMAIL`: Akun penguji terdaftar.
 - `TEST_USER_PASSWORD`: Password akun penguji.
+- `JWT_SECRET`: Secret JWT server untuk instant virtual token signing (default: `fallback_secret_key`).
+- `USER_POOL_SIZE`: Jumlah pool akun pengguna untuk multi-tenant simulation (default: `10`).
 
 ### Menjalankan Uji (Native k6)
 ```bash
