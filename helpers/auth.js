@@ -21,30 +21,30 @@ export function getAuthToken(credentials = DEFAULT_CREDENTIALS) {
         }
     });
 
-    const success = check(res, {
-        'auth login status is 200 or 201': (r) => [200, 201].includes(r.status),
-        'auth login contains token': (r) => {
-            try {
-                const token = r.json('data.token') || r.json('token');
-                return !!token;
-            } catch {
-                return false;
-            }
-        }
-    });
+    const isSuccess = [200, 201].includes(res.status);
+    let token = null;
+    let userId = 1;
 
-    if (success) {
+    if (isSuccess) {
         try {
-            const token = res.json('data.token') || res.json('token');
-            const userId = res.json('data.user.id') || res.json('user.id') || 1;
-            cachedAuth = { token, userId };
-            return cachedAuth;
+            token = res.json('data.token') || res.json('token');
+            userId = res.json('data.user.id') || res.json('user.id') || 1;
         } catch {
-            return null;
+            token = null;
         }
     }
 
-    return null;
+    check(res, {
+        'auth login status is 200 or 201': () => isSuccess,
+        'auth login contains token': () => !!token
+    });
+
+    if (!isSuccess || !token) {
+        throw new Error(`Authentication setup failed (status ${res.status}): ${res.body}`);
+    }
+
+    cachedAuth = { token, userId };
+    return cachedAuth;
 }
 
 export function getAuthHeaders(token) {

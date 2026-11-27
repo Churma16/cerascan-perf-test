@@ -1,7 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { BASE_URL } from '../../helpers/config.js';
-import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 /**
  * Single-Endpoint Stress Test: GET /api/user-quotas/:user_id
@@ -15,8 +14,8 @@ export const options = {
             rate: 300,        // Konstan 300 requests per detik
             timeUnit: '1s',
             duration: '2m',
-            preAllocatedVUs: 50,
-            maxVUs: 150
+            preAllocatedVUs: 100, // Little's Law buffer
+            maxVUs: 500           // Cukup untuk menampung latensi hingga 1.6s tanpa dropped iterations
         }
     },
     thresholds: {
@@ -25,15 +24,8 @@ export const options = {
     }
 };
 
-export function setup() {
-    return getAuthToken();
-}
-
-export default function (data) {
-    const userId = (data && data.userId) || 1;
-    const authHeaders = getAuthHeaders(data && data.token);
-
-    const res = http.get(`${BASE_URL}/api/user-quotas/${userId}`, { headers: authHeaders });
+export default function () {
+    const res = http.get(`${BASE_URL}/api/user-quotas/1`);
 
     check(res, {
         'quota check status is 200': (r) => r.status === 200

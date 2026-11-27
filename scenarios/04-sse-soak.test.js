@@ -18,8 +18,7 @@ export const options = {
         }
     },
     thresholds: {
-        sse_connected: ['rate>0.95'],
-        http_req_failed: ['rate<=1.0'] // Menyesuaikan threshold agar timeout 15s tidak memicu failure
+        sse_connected: ['rate>0.95']
     }
 };
 
@@ -27,7 +26,7 @@ export default function () {
     const clientId = `bench_${__VU}_${__ITER}`;
     const sseUrl = `${BASE_URL}/api/sse/events?userId=${clientId}`;
 
-    // Request SSE stream dengan timeout panjang untuk mensimulasikan koneksi aktif
+    // Request SSE stream dengan timeout 15s untuk mensimulasikan koneksi aktif
     const res = http.get(sseUrl, {
         headers: {
             'Accept': 'text/event-stream',
@@ -36,8 +35,14 @@ export default function () {
         timeout: '15s'
     });
 
+    const isRefused = res.error && typeof res.error === 'string' && (
+        res.error.includes('refused') ||
+        res.error.includes('reset') ||
+        res.error.includes('no route')
+    );
+
     const isConnected = check(res, {
-        'sse stream connected or completed': (r) => [200, 0].includes(r.status)
+        'sse stream connected and healthy': (r) => (r.status === 200 || (r.status === 0 && !isRefused))
     });
 
     sseConnected.add(isConnected);

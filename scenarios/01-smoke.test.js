@@ -7,7 +7,7 @@ import { runMonitorJourney } from '../journeys/monitor.journey.js';
 import { runBuyerJourney } from '../journeys/buyer.journey.js';
 
 export const options = {
-    vus: 2,
+    vus: 5,
     duration: '30s',
     thresholds: {
         http_req_failed: ['rate<0.05'], // Error rate < 5%

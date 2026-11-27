@@ -1,7 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { BASE_URL } from '../helpers/config.js';
-import { getAuthToken, getAuthHeaders } from '../helpers/auth.js';
 
 const sampleTileBinary = open('../fixtures/images/sample-tile.png', 'b');
 
@@ -23,24 +22,12 @@ export const options = {
     }
 };
 
-export function setup() {
-    return getAuthToken();
-}
-
-export default function (data) {
-    const token = data && data.token;
-    if (!token) {
-        sleep(1);
-        return;
-    }
-
+export default function () {
     const payload = {
         image: http.file(sampleTileBinary, 'burst-tile.png', 'image/png')
     };
 
-    const res = http.post(`${BASE_URL}/api/scans`, payload, {
-        headers: getAuthHeaders(token)
-    });
+    const res = http.post(`${BASE_URL}/api/scans`, payload);
 
     check(res, {
         'spike: upload status is 200/201/202': (r) => [200, 201, 202].includes(r.status)
