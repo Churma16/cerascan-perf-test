@@ -17,6 +17,11 @@ Dokumen spesifikasi dan rincian analitis pemetaan beban endpoint dapat dilihat d
    - `02-average-load.test.js`: Beban jam kerja normal (Weighted traffic, ramp-up 100 VUs).
    - `03-spike-upload.test.js`: Lonjakan mendadak upload (0 $\rightarrow$ 150 VUs dalam 10s) untuk menguji Cloudflare R2 & antrean RabbitMQ.
    - `04-sse-soak.test.js`: Uji ketahanan koneksi persisten Server-Sent Events (`/api/sse/events`).
+3. **Single-Endpoint Stress Benchmarks (Hotspot Isolation)**:
+   - `leaderboard-stress.js`: Uji batas throughput Redis in-memory cache (`GET /api/leaderboards`, ramp-up ke 1.000 RPS).
+   - `dashboard-kpi-stress.js`: Uji ketahanan cache hit rate saat 300 user membuka dashboard bersamaan (`GET /api/dashboard/kpi`).
+   - `quota-check-stress.js`: Uji pre-flight kuota konstan 300 RPS (`GET /api/user-quotas/:user_id`).
+   - `scan-upload-stress.js`: Uji titik jenuh buffer RAM Express Multer & publish RabbitMQ (`POST /api/scans`).
 
 ---
 
