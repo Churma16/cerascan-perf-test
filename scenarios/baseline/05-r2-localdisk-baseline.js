@@ -1,10 +1,10 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend } from 'k6/metrics';
-import { BASE_URL } from '../../helpers/config.js';
+import { BASE_URL, selectStages } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
-const sampleTileBinary = open('../../fixtures/images/sample-tile.png', 'b');
+const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
 const localUploadLatency = new Trend('local_upload_latency_ms');
 const localServingLatency = new Trend('local_serving_latency_ms');
 const coreServiceImpactLatency = new Trend('core_service_impact_latency_ms');
@@ -24,11 +24,18 @@ export const options = {
         baseline_localdisk_upload: {
             executor: 'ramping-vus',
             startVUs: 0,
-            stages: [
-                { duration: '20s', target: 15 },
-                { duration: '40s', target: 35 },
-                { duration: '20s', target: 0 }
-            ]
+            stages: selectStages(
+                [
+                    { duration: '10s', target: 10 },
+                    { duration: '20s', target: 20 },
+                    { duration: '10s', target: 0 }
+                ],
+                [
+                    { duration: '20s', target: 15 },
+                    { duration: '40s', target: 35 },
+                    { duration: '20s', target: 0 }
+                ]
+            )
         }
     },
     thresholds: {

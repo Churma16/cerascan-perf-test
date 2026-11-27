@@ -1,9 +1,9 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { BASE_URL } from '../../helpers/config.js';
+import { BASE_URL, selectStages } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
-const sampleTileBinary = open('../../fixtures/images/sample-tile.png', 'b');
+const sampleTileBinary = open('../../fixtures/images/sample-tile-hd.png', 'b');
 
 /**
  * Baseline Benchmark 04: REST HTTP/1.1 Inference (Tanpa gRPC Protobuf)
@@ -18,11 +18,18 @@ export const options = {
         baseline_rest_inference: {
             executor: 'ramping-vus',
             startVUs: 0,
-            stages: [
-                { duration: '15s', target: 5 },
-                { duration: '45s', target: 15 },
-                { duration: '15s', target: 0 }
-            ]
+            stages: selectStages(
+                [
+                    { duration: '10s', target: 5 },
+                    { duration: '20s', target: 10 },
+                    { duration: '10s', target: 0 }
+                ],
+                [
+                    { duration: '15s', target: 5 },
+                    { duration: '45s', target: 15 },
+                    { duration: '15s', target: 0 }
+                ]
+            )
         }
     },
     thresholds: {

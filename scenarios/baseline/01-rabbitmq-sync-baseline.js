@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { BASE_URL } from '../../helpers/config.js';
+import { BASE_URL, selectStages } from '../../helpers/config.js';
 import { getAuthToken, getAuthHeaders } from '../../helpers/auth.js';
 
 const sampleTileBinary = open('../../fixtures/images/sample-tile.png', 'b');
@@ -18,11 +18,18 @@ export const options = {
         baseline_sync_upload: {
             executor: 'ramping-vus',
             startVUs: 0,
-            stages: [
-                { duration: '30s', target: 20 },
-                { duration: '1m', target: 50 },
-                { duration: '30s', target: 0 }
-            ]
+            stages: selectStages(
+                [
+                    { duration: '10s', target: 10 },
+                    { duration: '20s', target: 20 },
+                    { duration: '10s', target: 0 }
+                ],
+                [
+                    { duration: '30s', target: 20 },
+                    { duration: '1m', target: 50 },
+                    { duration: '30s', target: 0 }
+                ]
+            )
         }
     },
     thresholds: {
