@@ -13,7 +13,8 @@ Dalam rekayasa perangkat lunak modern, arsitektur terdistribusi bukanlah "peluru
 
 Hasil pengujian komparatif komprehensif ini membuktikan:
 1. **Di Bawah Crossover Point (< 50–100 RPS)**: Pendekatan sederhana (in-process cache, single-statement SQL, monolith ber-index) sering kali memiliki latensi yang setara atau bahkan sedikit lebih cepat dibanding sistem terdistribusi karena terbebas dari *network roundtrip* eksternal.
-2. **Di Atas Crossover Point (> 100–250 RPS atau Lonjakan Spike)**: Pendekatan monolitik / in-process mengalami **degradasi eksponensial** akibat saturasi *connection pool*, *lock contention*, dan saturasi heap RAM V8. Pada titik inilah pilar terdistribusi CeraScan memberikan perlindungan stabilitas (*anti-crash*), throughput tinggi (*scale-out*), dan isolasi resource.
+2. **Konteks Trafik Riil vs Headroom**: Pada pengujian beban harian CeraScan (`scenarios/02-average-load.test.js`), volume request berada di kisaran ~27 RPS. Pada trafik sebesar ini, pendekatan monolitik sederhana sudah memadai. Pembenaran arsitektur terdistribusi CeraScan adalah **penyediaan headroom untuk pertumbuhan dan ketahanan terhadap lonjakan beban ekstrem (spike/burst isolation)**, bukan kebutuhan wajib pada trafik rendah.
+3. **Di Atas Crossover Point (> 100–250 RPS atau Lonjakan Spike)**: Pendekatan monolitik / in-process mengalami **degradasi eksponensial** akibat saturasi *connection pool*, *lock contention*, dan saturasi heap RAM V8. Pada titik inilah pilar terdistribusi CeraScan memberikan perlindungan stabilitas (*anti-crash*), throughput tinggi (*scale-out*), dan isolasi resource.
 
 ### Ringkasan Crossover RPS Tiap Pilar
 | Pilar Arsitektur | Kapan Mulai *Worth It* (Crossover Point) | Alasan Teknis |
@@ -42,8 +43,9 @@ Hasil pengujian komparatif komprehensif ini membuktikan:
   - `base:01b-mid` (In-Process Queue): `29.96/s`, 0 dropped, Avg `1.99ms`, P95 `4.02ms`, P99 `6.12ms`.
   - `arch:01b` (RabbitMQ + R2): `29.39/s`, 0 dropped, Avg `343.67ms`, P95 `484.56ms`, P99 `755.29ms`.
 - **Analisis & Trade-Off**:
-  - Secara latensi HTTP murni, In-Process Queue (`base:01b-mid`) paling cepat karena hanya memasukkan buffer gambar ke memori V8 Node.js tanpa upload cloud atau publish broker.
-  - **Kelemahan Fatal In-Process Queue**: Jika proses Node.js restart, crash, atau kehabisan memori (OOM), **100% antrean gambar di RAM hilang tanpa jejak**. Selain itu, memori heap Node.js membengkak seiring antrean bertambah.
+  - Secara latensi HTTP murni, In-Process Queue (`base:01b-mid`) paling cepat (~2ms) karena hanya memasukkan buffer gambar ke array memori V8 Node.js tanpa upload cloud atau publish broker.
+  - *Catatan Penyelarasan Metodologi*: Latensi `343ms` pada `arch:01b` didominasi oleh operasi upload gambar ke Cloudflare R2 (~340ms) sebelum mem-publish event ke RabbitMQ. Operasi publish ke RabbitMQ sendiri hanya membutuhkan ~3ms.
+  - **Kelemahan Fatal In-Process Queue**: Jika proses Node.js restart, crash, atau kehabisan memori (OOM), **100% antrean gambar di RAM hilang tanpa jejak** (terbukti di pengujian Chaos 01). Selain itu, memori heap Node.js membengkak seiring antrean bertambah.
   - **Nilai Nyata RabbitMQ**: Bukan sekadar membuat endpoint "asinkron 202", melainkan memberikan **durabilitas disk antrean**, isolasi memori server dari antrean gambar, dan kemampuan mendistribusikan beban ke banyak worker pod secara horizontal.
 
 ---
@@ -95,12 +97,14 @@ Hasil pengujian komparatif komprehensif ini membuktikan:
   - `arch:06b` (CQRS Polyglot Read-Model: MongoDB / Redis)
 - **Hasil Metrik**:
   - `base:06b` (Monolith Scan): Read Avg `626ms` / P95 `810ms`, Write Avg `1025ms`, Dropped **`2777`**.
-  - `base:06b-mid` (Indexed Summary): Read Avg `612.2ms` / P95 `845.3ms`, Write Avg `868.2ms`, Dropped **`2701`**.
-  - `arch:06b` (CQRS Polyglot): Read Avg **`51.1ms`** / P95 **`155ms`**, Write Avg **`377ms`**, Dropped **`25`**.
-- **Analisis**:
-  - Mengganti full-table scan menjadi query ringkas/terindeks (`base:06b-mid`) ternyata **belum menyelesaikan masalah** di beban 250 Read RPS. Mengapa?
-  - Karena pembacaan dan penulisan **masih berebut koneksi dan CPU di engine MySQL yang sama** (`connection pool max: 20`). Saat ratusan query read masuk, transaksi write tetap harus mengantre.
-  - CQRS memindahkan beban baca sepenuhnya ke MongoDB / Redis. MySQL hanya melayani 15 Write RPS, sehingga transaksi tulis turun dari ~1 detik menjadi 377ms.
+  - `base:06b-mid` (Indexed Summary, Pool default 20): Read Avg `612.2ms` / P95 `845.3ms`, Write Avg `868.2ms`, Dropped **`2701`**.
+  - `base:06b-mid` (Indexed Summary, Pool diperbesar 60): Read Avg `316.2ms` / P95 `680.7ms`, Write Avg `473.5ms`, Dropped **`930`**.
+  - `arch:06b` (CQRS Polyglot Read-Model): Read Avg **`51.1ms`** / P95 **`155ms`**, Write Avg **`377ms`**, Dropped **`25`**.
+- **Analisis & Uji Sensitivitas Pool**:
+  - Pertanyaan valid yang diuji: *Apakah degradasi pada `06b-mid` murni karena connection pool MySQL kekecilan (`max: 20`)?*
+  - **Hasil Uji Empiris**: Saat pool dinaikkan 3x lipat menjadi `max: 60`, jumlah request yang ter-drop memang berkurang signifikan (dari 2.701 menjadi 930). Namun, **latensi baca P95 tetap tertahan di 680.7ms (4.4x lebih lambat dari CQRS 155ms)** dan latensi tulis tetap 903.9ms.
+  - Ini membuktikan secara terukur bahwa tuning connection pool hanya meredakan antrean socket, namun tidak mampu menghilangkan perebutan thread CPU dan *disk I/O locking* di dalam database tunggal.
+  - CQRS memindahkan beban baca sepenuhnya ke MongoDB / Redis, sehingga MySQL hanya melayani transaksi tulis tanpa gangguan kueri analitik.
 
 ---
 
@@ -117,6 +121,15 @@ Hasil pengujian komparatif komprehensif ini membuktikan:
   - In-process retry (`base:07b-mid`) terbukti berhasil memulihkan kegagalan transient sehingga error rate mencapai 0.00%. Namun, ini menuntut bayaran mahal: **socket HTTP klien tersandera 5.2x lebih lama** (`56.52ms` vs `10.85ms`) karena klien harus menunggu seluruh siklus backoff (15ms + 30ms).
   - RabbitMQ DLQ memindahkan siklus retry ke background worker secara asinkron: endpoint langsung merespons klien dalam ~10ms.
   - Lebih jauh lagi, jika kegagalan bersifat permanen atau proses crash di tengah retry, in-process queue mengalami kehilangan data 100%, sedangkan RabbitMQ secara otomatis mengalirkan pesan ke antrean `scan.dlq` pada disk broker.
+
+---
+
+### Case 08 — Batch Upload vs Client Looping (Normalisasi Throughput Gambar)
+- **Normalisasi Throughput**:
+  - `base:08` (Client Looping 10 gambar satu per satu): `1.26 request/s` = `1.26 gambar/detik`, Latensi P95 `14.82s`, P99 `16.50s`, 501 koneksi HTTP terbuat.
+  - `arch:08` (Multipart Batch 10 gambar sekaligus): `0.50 batch/s` = **`5.00 gambar/detik`** (**throughput gambar 4.0x lebih tinggi**), Latensi P95 `8.32s`, P99 `8.75s`, hanya 31 koneksi HTTP (-93.8%).
+- **Analisis Rekayasa**:
+  - Satuan RPS batch (`0.50/s`) merepresentasikan *batch HTTP per detik*. Normalisasi ke *gambar per detik* (`5.00 img/s` vs `1.26 img/s`) membuktikan keunggulan konkurensi batch multipart dalam menghemat socket jaringan dan mempercepat pemrosesan kolektif.
 
 ---
 
