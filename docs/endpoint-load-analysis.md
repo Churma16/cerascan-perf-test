@@ -39,7 +39,7 @@ Endpoint-endpoint ini menerima volume request tertinggi saat pengguna berinterak
 
 ---
 
-### TIER 2: Compute & I/O Intensive (Paling Rawan Jebol)
+### TIER 2: Compute & I/O Intensive (Paling Rawan Bottleneck)
 Endpoint inti untuk upload gambar keramik. Menangani payload biner besar, I/O jaringan eksternal (Cloudflare R2), dan publish event ke message broker.
 
 | Method & Path | Subsistem yang Dilibatkan | Perilaku Beban | Risiko Bottleneck & Failure Mode | Target KPI (Under Load) |

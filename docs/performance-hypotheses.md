@@ -14,8 +14,9 @@ Dokumen ini mendefinisikan hipotesa kinerja sebelum eksekusi benchmark komparati
 | **04** | gRPC ML Inference | `POST /api/baseline/scans/grpc-inference` (gRPC `:50051`) | `POST /api/baseline/scans/rest-inference` (REST `:8000`) | Inference Roundtrip Time, Payload Size, Connection Reuse |
 | **05** | Cloudflare R2 Storage | `POST /api/scans` + Core Impact Check | `POST /api/baseline/scans/local-disk` + Static `/uploads` + Core Impact | Upload Latency Trade-off, Serving & Core Impact Latency, Local Disk Growth |
 | **06** | CQRS & Polyglot DB | Concurrent `GET /api/dashboard/kpi` + `POST /api/scans` | Concurrent `GET /api/baseline/dashboard/monolith` + `POST /api/scans` | Read Latency, Write Isolation, Eventual Consistency Lag |
-| **07** | Dead Letter Queue (DLQ) | Chaos Test: Worker Down -> `GET /api/dlq` + Retry | `POST /api/baseline/scans/fail-and-forget` | Data Loss Rate (%), Recovery Rate (%) |
+| **07** | Dead Letter Queue (DLQ) | Chaos Test: Worker Down -> `GET /api/dlq` + Retry | `POST /api/baseline/scans/fail-and-forget` & `/retry-and-log` | Data Loss Rate (%), Recovery Rate (%) |
 | **08** | Batch Upload Pipeline | `POST /api/scans/batch` (3 images) | Looping 3x `POST /api/scans` | Total Batch Duration, Network Handshake Overhead |
+| **09** | Redis Atomic Quota + Write-Behind | `POST /api/baseline/quota/redis-atomic` | `POST /api/baseline/quota/mysql-locked`, `/atomic-sql`, `/redis-write-through` | Throughput (RPS), Latency p95/p99, Lock Contention, Overselling Rate |
 
 ---
 
